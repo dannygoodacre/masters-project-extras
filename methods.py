@@ -58,8 +58,8 @@ def arnoldi(A, b, m = None):
     if m is None:
         m = A.shape[0]
 
-    V = np.zeros((A.shape[0], m))
-    H = np.zeros((m, m))
+    V = np.zeros((A.shape[0], m), dtype = 'complex_')
+    H = np.zeros((m, m), dtype = 'complex_')
 
     V[:, 0] = b / np.linalg.norm(b, 2)
 
@@ -84,27 +84,32 @@ def lanczos(A, b, m = None):
     if m is None:
         m = A.shape[0]
 
-    V = np.zeros((A.shape[0], m))
-    H = np.zeros((m, m))
+    V = np.zeros((A.shape[0], m), dtype = 'complex_')
+    T = np.zeros((m, m), dtype = 'complex_')
 
-    W = np.zeros((A.shape[0], m))
+    W = np.zeros((A.shape[0], m), dtype = 'complex_')
 
-    V[:, 0] = b / np.linalg.norm(b)
+    V[:, 0] = b / np.linalg.norm(b) # initialise v0
 
     w_ = np.dot(A, V[:, 0])
-    H[0, 0] = np.dot(w_.conj(), V[:, 0])
-    W[:, 0]= w_ - H[0, 0]*V[:, 0]
+    T[0, 0] = np.dot(w_.conj(), V[:, 0])
+    W[:, 0]= w_ - T[0, 0]*V[:, 0]
 
     for j in range(1, m):
         beta_j = np.linalg.norm(W[:, j-1])
-        V[:, j] = W[:, j-1] / beta_j
-        w_ = np.dot(A, V[:, j])
-        H[j, j] = np.dot(w_.conj(), V[:, j])
-        W[:, j] = H[j, j]*V[:, j] - beta_j*V[:, j-1]
+        V[:, j] = W[:, j-1] / beta_j # set columns of V
 
-    return V, H
+        w_ = np.dot(A, V[:, j])
+        T[j, j] = np.dot(w_.conj(), V[:, j]) # set diagonals
+        W[:, j] = T[j, j]*V[:, j] - beta_j*V[:, j-1]
+
+        T[j-1,j] = beta_j # set superdiagonals
+        T[j,j-1] = beta_j # set subdiagonals
+
+    return V, T
 
     # TODO: 
-    # add beta_j values to H
-    # compare output of lanczos with arnoldi
     # remember: lanczos only works with hermitian!
+    # implement approximation of exponential with krylov
+    # krylov can use padé for exponential of T since T has
+    # some nice properties I don't really care about
