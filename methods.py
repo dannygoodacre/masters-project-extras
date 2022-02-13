@@ -1,39 +1,7 @@
 import numpy as np
 import scipy as sp
-from scipy.special import factorial
-
-def matrix_exp_padé(A, p, q):
-    """
-    Approximation of matrix exponential of A using (p,q) Padé approximants.
-
-    Parameters
-    ----------
-    A : array_like
-        Square matrix.
-    p : int
-        Order of numerator of approximant.
-    q : int
-        Order of denominator of approximant.
-
-    Returns
-    -------
-    ndarray
-        The Padé approximant of exp(A)
-    """
-    N = 0 # numerator
-    D = 0 # denominator
-
-    f_p = factorial(p)
-    f_q = factorial(q)
-    f_p_q = factorial(p+q)
-
-    for i in range(0,p+1):
-        N += ((factorial(p + q - i) * f_p) / (f_p_q * factorial(i) * factorial(p-i))) * np.linalg.matrix_power(A,i)
-    
-    for i in range(0,q+1):
-        D += ((factorial(p + q - i) * f_q) / (f_p_q * factorial(i) * factorial(q-i))) * np.linalg.matrix_power(-A,i)
-    
-    return np.dot(np.linalg.inv(D),N)
+from scipy import integrate
+from ylp import *
 
 def arnoldi(A, b): 
     """
@@ -99,9 +67,8 @@ def lanczos(A, b):
     alpha = np.zeros((m,1), dtype = 'complex_')
     beta = np.zeros((m,1), dtype = 'complex_')
 
-    W = np.zeros((m, m), dtype = 'complex_') # intermediary vectors for algorithm
+    W = np.zeros((m, m), dtype = 'complex_')
 
-    # initialisation 
     V[:, 0] = b / np.linalg.norm(b)
     w_ = A @ V[:,0]
     alpha[0] = np.dot(w_.conj(),V[:,0])
@@ -116,10 +83,62 @@ def lanczos(A, b):
 
     return V, np.diagflat(alpha) + np.diagflat(beta[1:], 1) + np.diagflat(beta[1:], -1)
 
+def matrix_exp_padé(A, p, q):
+    """
+    Approximation of matrix exponential of A using (p,q) Padé approximants.
+
+    Parameters
+    ----------
+    A : ndarray
+        Square matrix.
+    p : int
+        Order of numerator of approximant.
+    q : int
+        Order of denominator of approximant.
+
+    Returns
+    -------
+    ndarray
+        The Padé approximant of exp(A)
+    """
+    N = 0
+    D = 0
+
+    f_p = sp.special.factorial(p)
+    f_q = sp.special.factorial(q)
+    f_p_q = sp.special.factorial(p+q)
+
+    for i in range(0,p+1):
+        N += ((sp.special.factorial(p + q - i) * f_p) / (f_p_q * sp.special.factorial(i) * sp.special.factorial(p-i))) * np.linalg.matrix_power(A,i)
+    
+    for i in range(0,q+1):
+        D += ((sp.special.factorial(p + q - i) * f_q) / (f_p_q * sp.special.factorial(i) * sp.special.factorial(q-i))) * np.linalg.matrix_power(-A,i)
+    
+    return np.dot(np.linalg.inv(D),N)
+
 def matrix_exp_krylov(A, b):
+    """
+    Approximation of matrix exponential of A multiplied by b using Krylov subspaces.
+
+    Parameters
+    ----------
+    A : ndarray
+        n x n matrix.
+    b : ndarray
+        n x 1
+
+    Returns
+    -------
+    ndarray
+        n x 1,  e^A * b
+    """
     if (np.array_equal(A.conj().T, A)):
-        V, H = lanczos(A, b) # A is Hermitian
+        V, H = lanczos(A, b) # more efficient for Hermitian matrix
     else:
         V, H = arnoldi(A, b)
 
     return np.linalg.norm(b) * V @ matrix_exp_padé(H, 8, 8) @ np.identity(A.shape[0])[:,0]
+
+# wip
+def integral(f, a, b):
+    return integrate.quad(f, a, b)[0]

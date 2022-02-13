@@ -9,12 +9,12 @@ def vec(mat):
 
     Parameters
     ----------
-    mat : array_like
+    mat : ndarray
         Matrix.
 
     Returns
     -------
-    array_like
+    ndarray
         Vectorised form of matrix, using column-major (Fortran) ordering.
 
     """
@@ -26,14 +26,14 @@ def unvec(vec, c = None):
 
     Parameters
     ----------
-    vec : array_like
+    vec : ndarray
         Vector of elements.
     c : int, optional
         Desired length of columns in matrix. Leave blank if a square matrix. The default is None.
 
     Returns
     -------
-    array_like
+    ndarray
         Matrix formed from vector.
 
     """
@@ -65,12 +65,12 @@ def liouvillian(H):
 
     Parameters
     ----------
-    H : array_like
+    H : ndarray
         Square matrix with dimension n.
 
     Returns
     -------
-    array_like
+    ndarray
         Square matrix with dimension n^2.
 
     """
@@ -85,9 +85,9 @@ def traceInnerProduct(a, b):
 
     Parameters
     ----------
-    a : array_like
+    a : ndarray
         Either an individual or array of numpy.array, numpy.matrix, or qutip.Qobj.
-    b : array_like
+    b : ndarray
         Single np.array.
 
     Returns
