@@ -1,7 +1,9 @@
 import numpy as np
 import scipy as sp
-from scipy import integrate
+import qutip as qt
 from ylp import *
+from scipy import integrate
+from functools import partial, partialmethod
 
 def arnoldi(A, b): 
     """
