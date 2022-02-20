@@ -1,4 +1,4 @@
-from ylp import *
+from misc import *
 
 def forward_euler_exp(A, h):
     """Approximation of matrix exponential of A using forward/explicit Euler.
@@ -79,7 +79,7 @@ def forward_euler_lvn(H, rho0, h, final_time):
         Array of density matrices evaluated across time specified.
 
     """
-    times = np.linspace(0, final_time, int(final_time/h))
+    times = np.linspace(0, final_time, int(final_time/h) + 1)
 
     # reformulate problem into vectorised form:  r' = -Ar = -iLr,, r(0) = r0
     A = -1j * liouvillian(H)
@@ -126,7 +126,7 @@ def backward_euler_lvn(H, rho0, h, final_time):
     r0 = vec(rho0)
 
     I = np.eye(A.shape[0])
-    be = la.inv(I - h*A)
+    be = sp.linalg.inv(I - h*A)
 
     density_matrices = [r0]
 
@@ -166,7 +166,7 @@ def trapezoidal_rule_lvn(H, rho0, h, final_time):
     r0 = vec(rho0)
 
     I = np.eye(A.shape[0])
-    tr = la.inv(I - (h/2)*A) @ (I + (h/2)*A)
+    tr = sp.linalg.inv(I - (h/2)*A) @ (I + (h/2)*A)
 
     density_matrices = [r0]
 

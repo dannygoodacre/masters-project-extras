@@ -1,5 +1,5 @@
-from re import T
 from methods import *
+from misc import *
 
 # integrating lambda nparray element-wise
 # for i in range(0,4):
@@ -23,7 +23,7 @@ e1 = np.array([1,0,0,0])
 test_func= lambda t: np.sin(t)
 sx = np.array(qt.sigmax())
 
-F = lambda f, t: integrate.quad(f, 0, t)[0] # integral of f from 0 to t
+F = lambda f, t: sp.integrate.quad(f, 0, t)[0] # integral of f from 0 to t
 
 # Y'(t) = A(t)Y(t), initial value: Y(0)
 # A(t) = f(t)B, where B is a constant matrix, f(t) is scalar function
