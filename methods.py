@@ -4,26 +4,30 @@ from misc import *
 def integral(f, a, b):
     return sp.integrate.quad(f, a, b)[0]
 
-def reform_lvn_equation(H, rho0, h, final_time, midpoint_time):
-    times = np.linspace(0, final_time, int(final_time / h) + 1)
-
-    if (midpoint_time):
-        times = (times[1:] + times[:-1]) / 2
-
-    return -1j*liouvillian(H), vec(rho0), times
-
-def pade_lvn(H, rho0, h, final_time, midpoint_time):
-    A, r0, times = reform_lvn_equation(H, rho0, h, final_time, midpoint_time)
-    
-    density_matrices = [r0] # make this an np array to save space
+def pade_lvn(f, g, omega, rho0, h, final_time, midpoint_time):
+    H, density_matrices, times = setup_lvn(f, g, omega, rho0, h, final_time, midpoint_time)
     
     for i in range(len(times) - 1):
-        density_matrices.append(sp.linalg.expm(h * A) @ density_matrices[i]) 
-
-    for i in range(len(times)):
+        A = -1j * liouvillian(H(times[i]))
+        density_matrices.append(sp.linalg.expm(h * A) @ density_matrices[i])
         density_matrices[i] = unvec(density_matrices[i])
-
+        
+    density_matrices[-1] = unvec(density_matrices[-1])
+    
     return density_matrices
 
-def krylov_lvn(H, rho0, h, final_time):
-    return 0
+def krylov_lvn(f, g, omega, rho0, h, final_time, midpoint_time):
+    H, density_matrices, times = setup_lvn(f, g, omega, rho0, h, final_time, midpoint_time)
+    
+    for i in range(len(times) - 1):
+        A = -1j * liouvillian(H(times[i]))
+        density_matrices.append(krylov_expm(h * A, density_matrices[i]))
+        density_matrices[i] = unvec(density_matrices[i])
+        
+    density_matrices[-1] = unvec(density_matrices[-1])
+    
+    return density_matrices
+
+# TODO:
+# implement time dependence for Padé and Krylov methods
+# H = f(t)*sx + g(t)*sy + const*sz is only form the deal with

@@ -75,7 +75,7 @@ def liouvillian(H):
 
     """
     H = np.asarray(H)
-    n = int(sqrt(H.size)) # dimension of H
+    n = H.shape[0]
 
     return (np.kron(np.eye(n),H) - np.kron(H.T,np.eye(n)))
 
@@ -135,6 +135,19 @@ def BlochSphereCoordinates(H, rho0, tlist):
     z = np.real(traceInnerProduct(density_matrices.states, qt.sigmaz()))/2
 
     return x,y,z
+
+def timesteps(h, final_time, midpoint_time):
+    times = np.linspace(0, final_time, int(final_time / h) + 1)
+
+    if (midpoint_time):
+        times = (times[1:] + times[:-1]) / 2
+        
+    return times
+
+def setup_lvn(f, g, omega, rho0, h, final_time, midpoint_time):
+    def H(t): return f(t)*qt.sigmax() + g(t)*qt.sigmay() + omega*qt.sigmaz()
+
+    return H, [vec(rho0)], timesteps(h, final_time, midpoint_time)
 
 def arnoldi(A, b): 
     """
@@ -216,7 +229,7 @@ def lanczos(A, b):
 
     return V, np.diagflat(alpha) + np.diagflat(beta[1:], 1) + np.diagflat(beta[1:], -1)
 
-def matrix_exp_pade(A, p, q):
+def pade_expm(A, p, q):
     """
     Approximation of matrix exponential of A using (p,q) Padé approximants.
 
@@ -249,7 +262,7 @@ def matrix_exp_pade(A, p, q):
     
     return np.dot(np.linalg.inv(D),N)
 
-def matrix_exp_krylov(A, b):
+def krylov_expm(A, b):
     """
     Approximation of matrix exponential of A multiplied by b using Krylov subspaces.
 

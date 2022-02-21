@@ -7,12 +7,13 @@ h = 0.0001
 
 H = qt.sigmax() - qt.sigmay() + 0.5*qt.sigmaz() # Hamiltonian
 rho0 = qt.sigmax() # initial condition
-sx = qt.sigmax()
 
-density_matrices = pade_lvn(H, rho0, 5/250, 5, False)
-density_matrices = trapezoidal_rule_lvn(H, rho0, 5/250, 5)
+def f(t): return 2*t
+def g(t): return t**2
 
-values = traceInnerProduct(density_matrices, qt.sigmax())/2
+density_matrices = krylov_lvn(f, g, 0.5, rho0, 5/250, 5, False)
+
+values = traceInnerProduct(density_matrices, qt.sigmax()) / 2
 
 plt.plot(values)
 # also plot qutip mesolve solution for comparison
