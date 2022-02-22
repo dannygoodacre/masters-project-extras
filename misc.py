@@ -3,34 +3,6 @@ import numpy as np
 import scipy as sp
 import qutip as qt
 
-def BlochSphereCoordinates(H, rho0, tlist):
-    """
-    Return 3D coordinates for trace inner product of density matrix in each spin direction (x,y,z) at times tlist.
-    Coordinates are normalised so they lie on the surface of a Bloch sphere.
-
-    Parameters
-    ----------
-    H : qutip.Qobj
-        System Hamiltonian.
-    rho0 : qutip.Qobj
-        Initial density matrix.
-    tlist : list/array
-        List of times for t.
-
-    Returns
-    -------
-    int numpy.array, int numpy.array, int numpy.array
-        3D coordinates as described above.
-
-    """
-    density_matrices = qt.mesolve(H, rho0, tlist)
-
-    x = np.real(traceInnerProduct(density_matrices.states, qt.sigmax()))/2
-    y = np.real(traceInnerProduct(density_matrices.states, qt.sigmay()))/2
-    z = np.real(traceInnerProduct(density_matrices.states, qt.sigmaz()))/2
-
-    return x,y,z
-
 def vec(mat):
     """
     Return a vector formed by stacking columns of matrix.
@@ -48,7 +20,7 @@ def vec(mat):
     """
     return np.asarray(mat).flatten('F')
 
-def unvec(vec, c = None):
+def unvec(vec, c=None):
     """
     Return unvectorised/re-matricised vector using column-major (Fortran) ordering.
 
@@ -87,26 +59,6 @@ def unvec(vec, c = None):
 
     return vec.reshape((c, n), order = 'F')
 
-def liouvillian(H):
-    """
-    Return Liouvillian of system given the Hamiltonian.
-
-    Parameters
-    ----------
-    H : ndarray
-        Square matrix with dimension n.
-
-    Returns
-    -------
-    ndarray
-        Square matrix with dimension n^2.
-
-    """
-    H = np.asarray(H)
-    n = H.shape[0]
-
-    return (np.kron(np.eye(n),H) - np.kron(H.T,np.eye(n)))
-
 def traceInnerProduct(a, b):
     """
     Return trace inner product of two square matrices.
@@ -137,6 +89,24 @@ def traceInnerProduct(a, b):
         return np.trace(a @ b)
 
 def timesteps(initial, final, h, midpoint):
+    """Create linspace of times with step size h.
+
+    Parameters
+    ----------
+    initial : float
+        Initial time.
+    final : float
+        Final time.
+    h : float
+        Time step.
+    midpoint : bool
+        Whether or not to take time increments at midpoint of interval instead of beginning.
+
+    Returns
+    -------
+    list
+        linspace of times.
+    """
     times = np.linspace(initial, final, int(final / h) + 1)
 
     if (midpoint):
@@ -144,11 +114,29 @@ def timesteps(initial, final, h, midpoint):
         
     return times
 
-def hamiltonian(H, t, args=None): # Hamiltonian at time t, where H is in QuTiP form for time-dependent Hamiltonian
-    ham = H[0]
-    for i in range(1, len(H)):
-        ham += H[i][1](t, args) * H[i][0]
-    return ham
+def setup_lvn(H_coeff, rho0, tlist):
+    """Set up parameters for Liouville-von Neumann equation.
+
+    Parameters
+    ----------
+    H_coeff : list/array
+        Three coefficients of Pauli matrices x,y,z in Hamiltonian. First two are functions, third is a constant.
+    rho0 : qutip.Qobj/ndarray
+        Initial condition for density matrix
+    tlist : list/array
+        List of times over which to solve LvN equation.
+        
+    Returns
+    -------
+    function
+        Hamiltonian
+    list
+        List to contain density matrices at times in tlist. Contains only initial condiiton.
+    float
+        Time step in tlist
+    """
+    def H(t): return H_coeff[0](t)*qt.sigmax() + H_coeff[1](t)*qt.sigmay() + H_coeff[2]*qt.sigmaz()
+    return H, [vec(rho0)], tlist[1] - tlist[0]
 
 def arnoldi(A, b): 
     """
@@ -229,39 +217,6 @@ def lanczos(A, b):
         W[:, j-1] = w_ - alpha[j-1]*V[:,j-1] - beta[j-1]*V[:,j-2]
 
     return V, np.diagflat(alpha) + np.diagflat(beta[1:], 1) + np.diagflat(beta[1:], -1)
-
-def pade_expm(A, p, q):
-    """
-    Approximation of matrix exponential of A using (p,q) Padé approximants.
-
-    Parameters
-    ----------
-    A : ndarray
-        Square matrix.
-    p : int
-        Order of numerator of approximant.
-    q : int
-        Order of denominator of approximant.
-
-    Returns
-    -------
-    ndarray
-        The Padé approximant of exp(A)
-    """
-    N = 0
-    D = 0
-
-    f_p = sp.special.factorial(p)
-    f_q = sp.special.factorial(q)
-    f_p_q = sp.special.factorial(p+q)
-
-    for i in range(0,p+1):
-        N += ((sp.special.factorial(p + q - i) * f_p) / (f_p_q * sp.special.factorial(i) * sp.special.factorial(p-i))) * np.linalg.matrix_power(A,i)
-    
-    for i in range(0,q+1):
-        D += ((sp.special.factorial(p + q - i) * f_q) / (f_p_q * sp.special.factorial(i) * sp.special.factorial(q-i))) * np.linalg.matrix_power(-A,i)
-    
-    return np.dot(np.linalg.inv(D),N)
 
 def krylov_expm(A, b):
     """
