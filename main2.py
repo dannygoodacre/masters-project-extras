@@ -8,12 +8,20 @@ h = 0.0001
 H = qt.sigmax() - qt.sigmay() + 0.5*qt.sigmaz() # Hamiltonian
 rho0 = qt.sigmax() # initial condition
 
-def f(t): return 2*t
-def g(t): return t**2
+def f(t, args=None): return 2*t
+def g(t, args=None): return -1
 
-density_matrices = krylov_lvn(f, g, 0.5, rho0, 5/250, 5, False)
+args = {'A' : 2}
 
-values = traceInnerProduct(density_matrices, qt.sigmax()) / 2
+H = [qt.sigmax(), [qt.sigmay(), f], [qt.sigmaz(), g]] # Standard form of QuTiP Hamiltonian
+
+# QuTiP approximation
+output = qt.mesolve(H, rho0, np.linspace(0, 5, 250)).states
+values = traceInnerProduct(output, qt.sigmax())
+
+# my approximation
+# output = krylov_lvn(H, rho0, timesteps(0, 5, 5/250, False), args)
+# values = traceInnerProduct(output, qt.sigmax()) / 2
 
 plt.plot(values)
 # also plot qutip mesolve solution for comparison

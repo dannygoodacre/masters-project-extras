@@ -3,6 +3,34 @@ import numpy as np
 import scipy as sp
 import qutip as qt
 
+def BlochSphereCoordinates(H, rho0, tlist):
+    """
+    Return 3D coordinates for trace inner product of density matrix in each spin direction (x,y,z) at times tlist.
+    Coordinates are normalised so they lie on the surface of a Bloch sphere.
+
+    Parameters
+    ----------
+    H : qutip.Qobj
+        System Hamiltonian.
+    rho0 : qutip.Qobj
+        Initial density matrix.
+    tlist : list/array
+        List of times for t.
+
+    Returns
+    -------
+    int numpy.array, int numpy.array, int numpy.array
+        3D coordinates as described above.
+
+    """
+    density_matrices = qt.mesolve(H, rho0, tlist)
+
+    x = np.real(traceInnerProduct(density_matrices.states, qt.sigmax()))/2
+    y = np.real(traceInnerProduct(density_matrices.states, qt.sigmay()))/2
+    z = np.real(traceInnerProduct(density_matrices.states, qt.sigmaz()))/2
+
+    return x,y,z
+
 def vec(mat):
     """
     Return a vector formed by stacking columns of matrix.
@@ -108,46 +136,19 @@ def traceInnerProduct(a, b):
     except: # a is individual
         return np.trace(a @ b)
 
-def BlochSphereCoordinates(H, rho0, tlist):
-    """
-    Return 3D coordinates for trace inner product of density matrix in each spin direction (x,y,z) at times tlist.
-    Coordinates are normalised so they lie on the surface of a Bloch sphere.
+def timesteps(initial, final, h, midpoint):
+    times = np.linspace(initial, final, int(final / h) + 1)
 
-    Parameters
-    ----------
-    H : qutip.Qobj
-        System Hamiltonian.
-    rho0 : qutip.Qobj
-        Initial density matrix.
-    tlist : list/array
-        List of times for t.
-
-    Returns
-    -------
-    int numpy.array, int numpy.array, int numpy.array
-        3D coordinates as described above.
-
-    """
-    density_matrices = qt.mesolve(H, rho0, tlist)
-
-    x = np.real(traceInnerProduct(density_matrices.states, qt.sigmax()))/2
-    y = np.real(traceInnerProduct(density_matrices.states, qt.sigmay()))/2
-    z = np.real(traceInnerProduct(density_matrices.states, qt.sigmaz()))/2
-
-    return x,y,z
-
-def timesteps(h, final_time, midpoint_time):
-    times = np.linspace(0, final_time, int(final_time / h) + 1)
-
-    if (midpoint_time):
+    if (midpoint):
         times = (times[1:] + times[:-1]) / 2
         
     return times
 
-def setup_lvn(f, g, omega, rho0, h, final_time, midpoint_time):
-    def H(t): return f(t)*qt.sigmax() + g(t)*qt.sigmay() + omega*qt.sigmaz()
-
-    return H, [vec(rho0)], timesteps(h, final_time, midpoint_time)
+def hamiltonian(H, t, args=None): # Hamiltonian at time t, where H is in QuTiP form for time-dependent Hamiltonian
+    ham = H[0]
+    for i in range(1, len(H)):
+        ham += H[i][1](t, args) * H[i][0]
+    return ham
 
 def arnoldi(A, b): 
     """

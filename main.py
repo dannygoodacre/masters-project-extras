@@ -20,7 +20,7 @@ e1 = np.array([1,0,0,0])
 
 #test = np.array([[lambda t: 0, lambda t: 2*t], [lambda t: 2*t, lambda t: 0]])
 
-test_func= lambda t: np.sin(t)
+test_func = lambda t: np.sin(t)
 sx = np.array(qt.sigmax())
 
 F = lambda f, t: sp.integrate.quad(f, 0, t)[0] # integral of f from 0 to t
