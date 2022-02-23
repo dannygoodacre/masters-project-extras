@@ -2,6 +2,7 @@ from math import sqrt
 import numpy as np
 import scipy as sp
 import qutip as qt
+import matplotlib.pyplot as plt
 
 def vec(mat):
     """

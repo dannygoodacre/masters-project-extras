@@ -1,9 +1,5 @@
 from misc import *
 
-# wip
-def integral(f, a, b):
-    return sp.integrate.quad(f, a, b)[0]
-
 def pade_lvn(H_coeff, rho0, tlist):
     """Evolve density matrix under Hamiltonian over increments of time using Padé approximants and scaling and squaring.
 
@@ -62,9 +58,18 @@ def krylov_lvn(H_coeff, rho0, tlist):
 
 def magnus_lvn(H_coeff, rho0, tlist):
     H, density_matrices, time_step = setup_lvn(H_coeff, rho0, tlist)
+    
+    for i in range(len(tlist) - 1):
+        Ht = sp.integrate.quad(H_coeff[0], 0, tlist[i])[0]*qt.sigmax() + sp.integrate.quad(H_coeff[1], 0, tlist[i])[0]*qt.sigmay() + H_coeff[2]*tlist[i]*qt.sigmaz()
+        A = np.asarray(qt.liouvillian(Ht))
+        density_matrices.append(sp.linalg.expm(A) @ density_matrices[0])
+        density_matrices[i+1] = unvec(density_matrices[i+1])
+        
+    density_matrices[0] = rho0
+    
+    return density_matrices
 
 # TODO:
-# Build Magnus based method for time-dependent Hamiltonians (remember QuTiP format)
-# Use built-in integral and commutator functions
+# Use built-in integral and commutator functions at first for Magnus
 # First get it to work with only the first term of the integral
 # DO SOME WRITING
