@@ -1,5 +1,6 @@
 from methods import *
 from misc import *
+from extras import *
 
 # Hermitian matrices and vectors for testing purposes
 A = np.array([[-1, 1-2j, 0], [1+2j, 0, -1j], [0, 1j, 1]])
@@ -19,16 +20,18 @@ H_coeff = [f, g, omega]
 
 rho0 = qt.sigmax()
 
+print(qt.commutator(A, A))
+
 # QuTiP approximation
-output_qutip = qt.mesolve([omega*qt.sigmaz(), [qt.sigmax(), f], [qt.sigmay(), g]], rho0, np.linspace(0, 5, 251)).states
-values_qutip = traceInnerProduct(output_qutip, qt.sigmax()) / 2
+# output_qutip = qt.mesolve([omega*qt.sigmaz(), [qt.sigmax(), f], [qt.sigmay(), g]], rho0, timesteps(0, 5, 1/250, True)).states
+# values_qutip = traceInnerProduct(output_qutip, qt.sigmax()) / 2
 
 # my approximation
-output = magnus_lvn(H_coeff, rho0, timesteps(0, 5, 5/250, False))
-values = traceInnerProduct(output, qt.sigmax()) / 2
+# output = pade_lvn(H_coeff, rho0, timesteps(0, 5, 1/250, True))
+# values = traceInnerProduct(output, qt.sigmax()) / 2
 
-plt.plot(values_qutip)
-plt.plot(values)
-plt.legend(['QuTiP', 'Me'])
-plt.xticks([0,50,100,150,200,250],[0,1,2,3,4,5])
-plt.show()
+# plt.plot(values_qutip)
+# plt.plot(values)
+# plt.legend(['QuTiP', 'Me'])
+# plt.xticks([0,50,100,150,200,250],[0,1,2,3,4,5])
+# plt.show()
