@@ -17,19 +17,19 @@ def pade_lvn(H_coeff, rho0, tlist):
     list
         density matrix evaluated at each time in tlist.
     """
-    H, density_matrices, time_step = setup_lvn(H_coeff, rho0, tlist)
+    H, states, time_step = setup_lvn(H_coeff, rho0, tlist)
     
     for i in range(len(tlist) - 1):
         A = np.asarray(qt.liouvillian(H(tlist[i])))
-        density_matrices.append(sp.linalg.expm(time_step * A) @ density_matrices[i])
-        density_matrices[i] = unvec(density_matrices[i])
+        states.append(sp.linalg.expm(time_step * A) @ states[i])
+        states[i] = unvec(states[i])
 
-    density_matrices[-1] = unvec(density_matrices[-1])
+    states[-1] = unvec(states[-1])
 
-    return density_matrices
+    return states
 
 def krylov_lvn(H_coeff, rho0, tlist):
-    """Evolve density matrix under Hamiltonian over increments of time using the Krylov subspace method.
+    """Evolve density matrix under Hamiltonian using the Krylov subspace method.
 
     Parameters
     ----------
@@ -45,31 +45,30 @@ def krylov_lvn(H_coeff, rho0, tlist):
     list
         density matrix evaluated at each time in tlist.
     """
-    H, density_matrices, time_step = setup_lvn(H_coeff, rho0, tlist) 
+    H, states, time_step = setup_lvn(H_coeff, rho0, tlist) 
     
     for i in range(len(tlist) - 1):
         A = np.asarray(qt.liouvillian(H(tlist[i])))
-        density_matrices.append(krylov_expm(time_step * A, density_matrices[i]))
-        density_matrices[i] = unvec(density_matrices[i])
+        states.append(krylov_expm(time_step * A, states[i]))
+        states[i] = unvec(states[i])
         
-    density_matrices[-1] = unvec(density_matrices[-1])
+    states[-1] = unvec(states[-1])
     
-    return density_matrices
+    return states
 
 def magnus_lvn(H_coeff, rho0, tlist):
-    H, density_matrices, time_step = setup_lvn(H_coeff, rho0, tlist)
+    states = [vec(rho0)]
     
     for i in range(len(tlist) - 1):
-        Ht = sp.integrate.quad(H_coeff[0], 0, tlist[i])[0]*qt.sigmax() + sp.integrate.quad(H_coeff[1], 0, tlist[i])[0]*qt.sigmay() + H_coeff[2]*tlist[i]*qt.sigmaz()
+        Ht = sp.integrate.quad(H_coeff[0], tlist[i], tlist[i + 1])[0]*qt.sigmax() + sp.integrate.quad(H_coeff[1], tlist[i], tlist[i + 1])[0]*qt.sigmay() + H_coeff[2]*(tlist[i + 1] - tlist[i])*qt.sigmaz()
         A = np.asarray(qt.liouvillian(Ht))
-        density_matrices.append(sp.linalg.expm(A) @ density_matrices[0])
-        density_matrices[i+1] = unvec(density_matrices[i+1])
-        
-    density_matrices[0] = rho0
+        states.append(sp.linalg.expm(A) @ states[i])
+        states[i] = unvec(states[i])
     
-    return density_matrices
+    states[-1] = unvec(states[-1])
+    
+    return states
 
 # TODO:
 # Use built-in integral and commutator functions at first for Magnus
-# First get it to work with only the first term of the integral
 # DO SOME WRITING

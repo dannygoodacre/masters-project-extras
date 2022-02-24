@@ -1,5 +1,3 @@
-"""Methods which are useful but not currently used."""
-
 from misc import *
 from badMethods import *
 import matplotlib.pyplot as plt
@@ -24,11 +22,11 @@ def BlochSphereCoordinates(H, rho0, tlist):
         3D coordinates as described above.
 
     """
-    density_matrices = qt.mesolve(H, rho0, tlist)
+    states = qt.mesolve(H, rho0, tlist)
 
-    x = np.real(traceInnerProduct(density_matrices.states, qt.sigmax()))/2
-    y = np.real(traceInnerProduct(density_matrices.states, qt.sigmay()))/2
-    z = np.real(traceInnerProduct(density_matrices.states, qt.sigmaz()))/2
+    x = np.real(traceInnerProduct(states.states, qt.sigmax()))/2
+    y = np.real(traceInnerProduct(states.states, qt.sigmay()))/2
+    z = np.real(traceInnerProduct(states.states, qt.sigmaz()))/2
 
     return x,y,z
 
@@ -51,6 +49,64 @@ def liouvillian(H):
     n = H.shape[0]
 
     return (np.kron(np.eye(n),H) - np.kron(H.T,np.eye(n)))
+
+def forward_euler_exp(A, h):
+    """Approximation of matrix exponential of A using forward/explicit Euler.
+
+    Parameters
+    ----------
+    A : ndarray
+        Square matrix.
+    h : float
+        Time step for method.
+
+    Returns
+    -------
+    ndarray
+        e^A
+    """
+    M = np.eye(A.shape[0]) + h*A
+    p = int(1/h)
+    return np.linalg.matrix_power(M, p)
+
+def backward_euler_exp(A, h):
+    """Approximation of matrix exponential of A using backward/implicit Euler.
+
+    Parameters
+    ----------
+    A : ndarray
+        Square matrix.
+    h : float
+        Time step for method.
+
+    Returns
+    -------
+    ndarray
+        e^A
+    """
+    M = np.linalg.inv(np.eye(A.shape[0]) - h*A)
+    p = int(1/h)
+    return np.linalg.matrix_power(M, p)
+
+def trapezoidal_rule_exp(A, h):
+    """Approximation of matrix exponential of A using the trapezoidal rule.
+
+    Parameters
+    ----------
+    A : ndarray
+        Square matrix.
+    h : float
+        Time step for method. 
+
+    Returns
+    -------
+    ndarray
+        e^A
+    """
+    I = np.eye(A.shape[0])
+    M = np.linalg.inv(I - 0.5*h*A) @ (I + 0.5*h*A) # check if splitting and raising to power seperately is more efficient
+    p = int(1/h)
+    return np.linalg.matrix_power(M, p)
 
 def pade_expm(A, p, q):
     """
