@@ -60,15 +60,10 @@ def magnus_lvn(H_coeff, rho0, tlist):
     states = [vec(rho0)]
     
     for i in range(len(tlist) - 1):
-        Ht = sp.integrate.quad(H_coeff[0], tlist[i], tlist[i + 1])[0]*qt.sigmax() + sp.integrate.quad(H_coeff[1], tlist[i], tlist[i + 1])[0]*qt.sigmay() + H_coeff[2]*(tlist[i + 1] - tlist[i])*qt.sigmaz()
-        A = np.asarray(qt.liouvillian(Ht))
-        states.append(sp.linalg.expm(A) @ states[i])
+        om = np.asarray(magnus_two_term(H_coeff, tlist[i], tlist[i + 1]))
+        states.append(sp.linalg.expm(om) @ states[i])
         states[i] = unvec(states[i])
     
     states[-1] = unvec(states[-1])
     
     return states
-
-# TODO:
-# Use built-in integral and commutator functions at first for Magnus
-# DO SOME WRITING

@@ -165,3 +165,25 @@ def lanczos(A, b, m=None):
 def krylov_expm(A, b, m=None):
     V, T = lanczos(A, b, m)
     return np.linalg.norm(b) * V @ sp.linalg.expm(T) @ np.eye(1, T.shape[0])[0]
+
+def hamiltonian_integral(H_coeff, t0, tf):
+    return sp.integrate.quad(H_coeff[0], t0, tf)[0]*qt.sigmax() + sp.integrate.quad(H_coeff[1], t0, tf)[0]*qt.sigmay() + (H_coeff[2] * (tf - t0))*qt.sigmaz()
+
+def magnus_second_term(H_coeff, t0, tf):
+    f = H_coeff[0]
+    g = H_coeff[1]
+    omega = H_coeff[2]
+    
+    def x(x) : return x
+    def q1(y, x) : return g(x) - g(y)
+    def q2(y, x) : return f(y) - f(x)
+    def q3(y, x) : return f(x)*g(y) - g(x)*f(y)
+    
+    sx = omega * sp.integrate.dblquad(q1, t0, tf, t0, x)[0]
+    sy = omega * sp.integrate.dblquad(q2, t0, tf, t0, x)[0]
+    sz = sp.integrate.dblquad(q3, t0, tf, t0, x)[0]
+    
+    return sx*qt.sigmax() + sy*qt.sigmay() + sz*qt.sigmaz()
+
+def magnus_two_term(H_coeff, t0, tf):
+    return qt.liouvillian(hamiltonian_integral(H_coeff, t0, tf) + magnus_second_term(H_coeff, t0, tf))
