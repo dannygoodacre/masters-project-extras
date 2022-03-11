@@ -114,30 +114,6 @@ def timesteps(initial, final, h, midpoint):
         
     return times
 
-def setup_lvn(H_coeff, rho0, tlist):
-    """Set up parameters for Liouville-von Neumann equation.
-
-    Parameters
-    ----------
-    H_coeff : list/array
-        Three coefficients of Pauli matrices x,y,z in Hamiltonian. First two are functions, third is a constant.
-    rho0 : qutip.Qobj/ndarray
-        Initial condition for density matrix
-    tlist : list/array
-        List of times over which to solve LvN equation.
-        
-    Returns
-    -------
-    function
-        Hamiltonian
-    list
-        List to contain density matrices at times in tlist. Contains only initial condiiton.
-    float
-        Time step in tlist
-    """
-    def H(t): return H_coeff[0](t)*qt.sigmax() + H_coeff[1](t)*qt.sigmay() + H_coeff[2]*qt.sigmaz()
-    return H, [vec(rho0)], tlist[1] - tlist[0]
-
 def lanczos(A, b, m=None):
     n = A.shape[0]
     if m is None:
@@ -166,7 +142,7 @@ def krylov_expm(A, b, m=None):
     V, T = lanczos(A, b, m)
     return np.linalg.norm(b) * V @ sp.linalg.expm(T) @ np.eye(1, T.shape[0])[0]
 
-def hamiltonian_integral(H_coeff, t0, tf):
+def magnus_first_term(H_coeff, t0, tf):
     return sp.integrate.quad(H_coeff[0], t0, tf)[0]*qt.sigmax() + sp.integrate.quad(H_coeff[1], t0, tf)[0]*qt.sigmay() + (H_coeff[2] * (tf - t0))*qt.sigmaz()
 
 def magnus_second_term(H_coeff, t0, tf):
@@ -184,6 +160,3 @@ def magnus_second_term(H_coeff, t0, tf):
     sz = sp.integrate.dblquad(q3, t0, tf, t0, x)[0]
     
     return sx*qt.sigmax() + sy*qt.sigmay() + sz*qt.sigmaz()
-
-def magnus_two_term(H_coeff, t0, tf):
-    return qt.liouvillian(hamiltonian_integral(H_coeff, t0, tf) + magnus_second_term(H_coeff, t0, tf))
