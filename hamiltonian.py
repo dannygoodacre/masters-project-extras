@@ -22,5 +22,5 @@ def two_particle(H1_coeff, H2_coeff, J12=0):
     return H
 
 def n_particle():
-    # TODO: speak to Pranav
+    # TODO
     return 0

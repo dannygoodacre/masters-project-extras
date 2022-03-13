@@ -70,55 +70,34 @@ def backward_euler_lvn(H, rho0, h, final_time):
     
     return states
 
-def trapezoidal_rule_lvn(H, rho0, h, final_time):
-    """Approximation of density matrix using Trapezoidal Ruler as it
-    evolves under the specified Liouville-von Neumann equation.
-
-    Parameters
-    ----------
-    H : ndarray
-        n x n, Hamiltonian.
-    rho0 : ndarray
-        n x n, Initial density matrix.
-    h : float
-        Time step.
-    final_time : float
-        Final time.
-
-    Returns
-    -------
-    ndarray
-        Array of density matrices evaluated across time specified.
-
-    """
-    times = np.linspace(0, final_time, int(final_time / h) + 1)
-    A = np.asarray(qt.liouvillian(H))
+def trapezoidal_rule_lvn(H, rho0, tlist, midpoint):
+    h = tlist[1] - tlist[0]
     states = [vec(rho0)]
+    I = np.eye(rho0.full().size)
 
-    I = np.eye(A.shape[0])
-    tr = sp.linalg.inv(I - (h/2)*A) @ (I + (h/2)*A)
-
-    for i in range(len(times) - 1):
+    for i in range(len(tlist) - 1):
+        A = np.asarray(qt.liouvillian(H(tlist[i] + midpoint*0.5*h)))
+        tr = sp.linalg.inv(I - (h/2)*A) @ (I + (h/2)*A)
+        
         states.append(tr @ states[i])
         states[i] = unvec(states[i])
-        
     states[-1] = unvec(states[-1])
 
     return states
 
-def rk4_lvn(H_coeff, rho0, tlist):
-    H, states, time_step = setup_lvn(H_coeff, rho0, tlist)
+def rk4_lvn(H, rho0, tlist, midpoint):
+    h = tlist[1] - tlist[0]
+    states = [vec(rho0)]
     
     for i in range(len(tlist) - 1):
-        A = np.asarray(qt.liouvillian(H(tlist[i])))
+        A = np.asarray(qt.liouvillian(H(tlist[i] + midpoint*0.5*h)))
         k1 = A @ states[i]
-        k2 = A @ (states[i] + 0.5*time_step*k1)
-        k3 = A @ (states[i] + 0.5*time_step*k2)
-        k4 = A @ (states[i] + time_step*k3)
+        k2 = A @ (states[i] + 0.5*h*k1)
+        k3 = A @ (states[i] + 0.5*h*k2)
+        k4 = A @ (states[i] + h*k3)
         
-        states.append(states[i] + (1/6)*time_step*(k1 + 2*k2 + 2*k3 + k4))
+        states.append(states[i] + (1/6)*h*(k1 + 2*k2 + 2*k3 + k4))
         states[i] = unvec(states[i])
-    
     states[-1] = unvec(states[-1])
     
     return states

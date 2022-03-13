@@ -88,31 +88,8 @@ def traceInnerProduct(a, b):
     except: # a is individual
         return np.trace(a.conj().T @ b)
 
-def timesteps(initial, final, h, midpoint):
-    """Create list of times with step size h.
-
-    Parameters
-    ----------
-    initial : float
-        Initial time.
-    final : float
-        Final time.
-    h : float
-        Time step.
-    midpoint : bool
-        Whether or not to take time increments at midpoint of interval instead of beginning.
-
-    Returns
-    -------
-    list
-        linspace of times.
-    """
-    times = np.linspace(initial, final, int(final / h) + 1)
-
-    if (midpoint):
-        times = (times[1:] + times[:-1]) / 2
-        
-    return times
+def timesteps(initial, final, h):
+    return np.linspace(initial, final, int(final / h) + 1)        
 
 def lanczos(A, b, m=None):
     n = A.shape[0]
@@ -160,3 +137,19 @@ def magnus_second_term(H_coeff, t0, tf):
     sz = sp.integrate.dblquad(q3, t0, tf, t0, x)[0]
     
     return sx*qt.sigmax() + sy*qt.sigmay() + sz*qt.sigmaz()
+
+def loglog_plot(data, ref, k_range, start_of_best_fit=None):
+    data = np.load(data, allow_pickle=True)
+    ref = np.load(ref, allow_pickle=True)
+    
+    steps, errors = []
+    for k in k_range:
+        steps.append(0.5**k)
+        ref_points = ref[::int((len(ref) - 1) / (len(data[k-1]) - 1))] # reference points that align with data points
+        errors.append(np.amax(np.linalg.norm(np.subtract(ref_points, data[k-1]), axis=(1, 2))))
+        
+    plt.loglog(steps, errors)
+    m, c = np.polyfit(np.log10(steps[start_of_best_fit:]), np.log10(errors[start_of_best_fit:]), 1)
+    if start_of_best_fit is not None: 
+        plt.plot(steps[start_of_best_fit:], 10**(m*np.log10(steps[start_of_best_fit:]) + c))
+    return m

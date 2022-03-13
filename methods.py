@@ -1,6 +1,6 @@
 from misc import *
 
-def magnus_lvn(H_coeff, rho0, tlist):
+def magnus_lvn(H_coeff, rho0, tlist): # TODO: fix this like the two below. Will involve fixing magnus firs and second term
     states = [vec(rho0)]
     
     for i in range(len(tlist) - 1):
@@ -12,28 +12,26 @@ def magnus_lvn(H_coeff, rho0, tlist):
     
     return states
 
-def krylov_lvn(H, rho0, tlist, m):
-    time_step = tlist[1] - tlist[0]
+def krylov_lvn(H, rho0, tlist, m, midpoint=False):
+    h = tlist[1] - tlist[0]
     states = [vec(rho0)]
     
     for i in range(len(tlist) - 1):
-        A = np.asarray(qt.liouvillian(H(tlist[i])))
-        states.append(krylov_expm(time_step * A, states[i], m))
+        A = np.asarray(qt.liouvillian(H(tlist[i] + midpoint*0.5*h)))
+        states.append(krylov_expm(h * A, states[i], m))
         states[i] = unvec(states[i])
-        
     states[-1] = unvec(states[-1])
     
     return states
 
-def expm_lvn(H, rho0, tlist):
-    time_step = tlist[1] - tlist[0]
+def expm_lvn(H, rho0, tlist, midpoint=False):
+    h = tlist[1] - tlist[0]
     states = [vec(rho0)]
     
     for i in range(len(tlist) - 1):
-        A = np.asarray(qt.liouvillian(H(tlist[i])))
-        states.append(sp.linalg.expm(time_step * A) @ states[i])
+        A = np.asarray(qt.liouvillian(H(tlist[i] + midpoint*0.5*h)))
+        states.append(sp.linalg.expm(h * A) @ states[i])
         states[i] = unvec(states[i])
-
     states[-1] = unvec(states[-1])
-
+    
     return states
