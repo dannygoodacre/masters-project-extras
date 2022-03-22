@@ -1,6 +1,5 @@
 from misc import *
 from badMethods import *
-import matplotlib.pyplot as plt
 
 def BlochSphereCoordinates(H, rho0, tlist):
     """
@@ -22,11 +21,11 @@ def BlochSphereCoordinates(H, rho0, tlist):
         3D coordinates as described above.
 
     """
-    states = qt.mesolve(H, rho0, tlist)
+    states = qt.mesolve(H, rho0, tlist).states
 
-    x = np.real(traceInnerProduct(states.states, qt.sigmax()))/2
-    y = np.real(traceInnerProduct(states.states, qt.sigmay()))/2
-    z = np.real(traceInnerProduct(states.states, qt.sigmaz()))/2
+    x = traceInnerProduct(states, qt.sigmax()) / 2
+    y = traceInnerProduct(states, qt.sigmay()) / 2
+    z = traceInnerProduct(states, qt.sigmaz()) / 2
 
     return x,y,z
 

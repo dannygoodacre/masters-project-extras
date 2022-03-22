@@ -119,10 +119,7 @@ def krylov_expm(A, b, m=None):
     V, T = lanczos(A, b, m)
     return np.linalg.norm(b) * V @ sp.linalg.expm(T) @ np.eye(1, T.shape[0])[0]
 
-def magnus_first_term(H_coeff, t0, tf):
-    return sp.integrate.quad(H_coeff[0], t0, tf)[0]*qt.sigmax() + sp.integrate.quad(H_coeff[1], t0, tf)[0]*qt.sigmay() + (H_coeff[2] * (tf - t0))*qt.sigmaz()
-
-def magnus_second_term(H_coeff, t0, tf):
+def old_magnus_second_term(H_coeff, t0, tf):
     f = H_coeff[0]
     g = H_coeff[1]
     omega = H_coeff[2]
@@ -138,18 +135,35 @@ def magnus_second_term(H_coeff, t0, tf):
     
     return sx*qt.sigmax() + sy*qt.sigmay() + sz*qt.sigmaz()
 
-def loglog_plot(data, ref, k_range, start_of_best_fit=None):
-    data = np.load(data, allow_pickle=True)
-    ref = np.load(ref, allow_pickle=True)
-    
-    steps, errors = []
-    for k in k_range:
+def loglog_plot(data, ref, data_range, plot_range, best_fit_range=None, plot_best_fit=False, label=None):
+    steps = []
+    errors = []
+    data_start = data_range[0]
+    for k in plot_range:
         steps.append(0.5**k)
-        ref_points = ref[::int((len(ref) - 1) / (len(data[k-1]) - 1))] # reference points that align with data points
-        errors.append(np.amax(np.linalg.norm(np.subtract(ref_points, data[k-1]), axis=(1, 2))))
+        ref_points = ref[::int((len(ref) - 1) / (len(data[k-data_start]) - 1))] # reference points that align with data points
+        errors.append(np.amax(np.linalg.norm(np.subtract(ref_points, data[k-data_start]), axis=(1, 2))))
+    plt.loglog(steps, errors, label=label)
+    
+    if best_fit_range is not None: 
+        start = best_fit_range[0]
+        end = best_fit_range[-1]
         
-    plt.loglog(steps, errors)
-    m, c = np.polyfit(np.log10(steps[start_of_best_fit:]), np.log10(errors[start_of_best_fit:]), 1)
-    if start_of_best_fit is not None: 
-        plt.plot(steps[start_of_best_fit:], 10**(m*np.log10(steps[start_of_best_fit:]) + c))
-    return m
+        steps = steps[start:end+1]
+        errors = errors[start:end+1]
+        
+        m, c = np.polyfit(np.log10(steps), np.log10(errors), 1)
+        if plot_best_fit:
+            plt.plot(steps, 10**(m*np.log10(steps) + c))
+        return m
+    
+    return 0
+
+def many_kron(matrices): 
+    if type(matrices) == type(np.zeros(1)): # single matrix given
+        return matrices
+    k = matrices[0]
+    for matrix in matrices[1:]:
+        k = np.kron(k, matrix)
+        
+    return k
