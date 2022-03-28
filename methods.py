@@ -1,5 +1,6 @@
 from misc import *
 import qutip as qt
+import misc
 
 def krylov_lvn(H, rho0, tlist, m, midpoint=False):
     h = tlist[1] - tlist[0]
@@ -175,5 +176,20 @@ def magnus_lvn_2_one_particle(H_coeff, rho0, tlist):
         states[i] = unvec(states[i])
         
     states[-1] = unvec(states[-1])
+    
+    return states
+
+
+def expm_one_spin(data, rho0, tlist):
+    h = tlist[1] - tlist[0]
+    states = [misc.vec(rho0)]
+    
+    for i in range(len(tlist) - 1):
+        A = np.asarray(qt.liouvillian(data[i][0]*qt.sigmax() + data[i][1]*qt.sigmay() + data[i][2]*qt.sigmaz()))
+        states.append(sp.linalg.expm(A) @ states[i])
+        states[i] = misc.unvec(states[i])
+        if not (i % 10000): 
+                print(i)
+    states[-1] = misc.unvec(states[-1])
     
     return states
