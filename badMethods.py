@@ -1,33 +1,13 @@
 from misc import *
 
-def forward_euler_lvn(H, rho0, h, final_time):
-    """Approximation of density matrix using Forward/Explicit Euler as it
-    evolves under the specified Liouville-von Neumann equation.
-
-    Parameters
-    ----------
-    H : ndarray 
-        n x n, Hamiltonian.
-    rho0 : ndarray
-        n x n, Initial density matrix.
-    h : float
-        Time step.
-    final_time : float
-        Final time
-
-    Returns
-    -------
-    ndarray
-        Array of density matrices evaluated across time specified.
-
-    """
-    times = np.linspace(0, final_time, int(final_time/h) + 1)
-    A = np.asarray(qt.liouvillian(H))
+def forward_euler_lvn(H, rho0, tlist, midpoint=False):
     states = [vec(rho0)]
+    h = tlist[1] - tlist[0]
 
-    fe = np.eye(A.shape[0]) + h*A
-
-    for i in range(len(times) - 1):
+    for i in range(len(tlist) - 1):
+        A = np.asarray(qt.liouvillian(H(tlist[i] + 0.5*midpoint*h)))
+        fe = np.eye(A.shape[0]) + h*A
+        
         states.append(fe @ states[i])
         states[i] = unvec(states[i])
 
@@ -35,34 +15,14 @@ def forward_euler_lvn(H, rho0, h, final_time):
 
     return states
 
-def backward_euler_lvn(H, rho0, h, final_time):
-    """Approximation of density matrix using Backward/Implicit Euler as it
-    evolves under the specified Liouville-von Neumann equation.
-
-    Parameters
-    ----------
-    H : ndarray
-        n x n, Hamiltonian.
-    rho0 : ndarray
-        n x n, Initial density matrix.
-    h : float
-        Time step.
-    final_time : float
-        Final time.
-
-    Returns
-    -------
-    ndarray
-        Array of density matrices evaluated across time specified.
-
-    """
-    times = np.linspace(0, final_time, int(final_time/h) + 1)
-    A = np.asarray(qt.liouvillian(H))
+def backward_euler_lvn(H, rho0, tlist, midpoint=False):
     states = [vec(rho0)]
+    h = tlist[1] - tlist[0]
 
-    be = sp.linalg.inv(np.eye(A.shape[0]) - h*A)
-
-    for i in range(len(times) - 1):
+    for i in range(len(tlist) - 1):
+        A = np.asarray(qt.liouvillian(H(tlist[i] + 0.5*midpoint*h))) # Check if backward or forward is better
+        be = sp.linalg.inv(np.eye(A.shape[0]) - h*A)
+        
         states.append(be @ states[i])
         states[i] = unvec(states[i])
 
@@ -70,7 +30,7 @@ def backward_euler_lvn(H, rho0, h, final_time):
     
     return states
 
-def trapezoidal_rule_lvn(H, rho0, tlist, midpoint):
+def trapezoidal_rule_lvn(H, rho0, tlist, midpoint=False):
     h = tlist[1] - tlist[0]
     states = [vec(rho0)]
     I = np.eye(rho0.full().size)
@@ -85,7 +45,7 @@ def trapezoidal_rule_lvn(H, rho0, tlist, midpoint):
 
     return states
 
-def rk4_lvn(H, rho0, tlist, midpoint):
+def rk4_lvn(H, rho0, tlist, midpoint=False):
     h = tlist[1] - tlist[0]
     states = [vec(rho0)]
     

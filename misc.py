@@ -1,6 +1,5 @@
 import numpy as np
 import scipy as sp
-import qutip as qt
 import matplotlib.pyplot as plt
 
 def vec(mat):
@@ -119,30 +118,16 @@ def krylov_expm(A, b, m=None):
     V, T = lanczos(A, b, m)
     return np.linalg.norm(b) * V @ sp.linalg.expm(T) @ np.eye(1, T.shape[0])[0]
 
-def old_magnus_second_term(H_coeff, t0, tf):
-    f = H_coeff[0]
-    g = H_coeff[1]
-    omega = H_coeff[2]
-    
-    def x(x) : return x
-    def q1(y, x) : return g(x) - g(y)
-    def q2(y, x) : return f(y) - f(x)
-    def q3(y, x) : return f(x)*g(y) - g(x)*f(y)
-    
-    sx = omega * sp.integrate.dblquad(q1, t0, tf, t0, x)[0]
-    sy = omega * sp.integrate.dblquad(q2, t0, tf, t0, x)[0]
-    sz = sp.integrate.dblquad(q3, t0, tf, t0, x)[0]
-    
-    return sx*qt.sigmax() + sy*qt.sigmay() + sz*qt.sigmaz()
-
-def loglog_plot(data, ref, data_range, plot_range, best_fit_range=None, plot_best_fit=False, label=None):
+def loglog_plot(data, ref, data_range, plot_range=None, best_fit_range=None, plot_best_fit=False, label=None):
     steps = []
     errors = []
     data_start = data_range[0]
+    if plot_range is None:
+        plot_range = data_range
     for k in plot_range:
         steps.append(0.5**k)
         ref_points = ref[::int((len(ref) - 1) / (len(data[k-data_start]) - 1))] # reference points that align with data points
-        errors.append(np.amax(np.linalg.norm(np.subtract(ref_points, data[k-data_start]), axis=(1, 2))))
+        errors.append(np.amax(np.linalg.norm(np.subtract(ref_points, data[k-data_start]), ord=2 ,axis=(1, 2))))
     plt.loglog(steps, errors, label=label)
     
     if best_fit_range is not None: 
@@ -158,12 +143,3 @@ def loglog_plot(data, ref, data_range, plot_range, best_fit_range=None, plot_bes
         return m
     
     return 0
-
-def many_kron(matrices): 
-    if type(matrices) == type(np.zeros(1)): # single matrix given
-        return matrices
-    k = matrices[0]
-    for matrix in matrices[1:]:
-        k = np.kron(k, matrix)
-        
-    return k
