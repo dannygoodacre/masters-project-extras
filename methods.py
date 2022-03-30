@@ -193,3 +193,21 @@ def expm_one_spin(data, rho0, tlist):
     states[-1] = misc.unvec(states[-1])
     
     return states
+
+def glq(H_coeff, rho0, tlist, deg):
+    h = tlist[1] - tlist[0]
+    states = [misc.vec(rho0)]
+    
+    for i in range(len(tlist) - 1): # H_coeff = [f, g, omega]
+        int1 = sp.integrate.fixed_quad(H_coeff[0], tlist[i], tlist[i+1], n=deg)[0]
+        int2 = sp.integrate.fixed_quad(H_coeff[1], tlist[i], tlist[i+1], n=deg)[0]
+        int3 = H_coeff[2] * h
+        
+        A = np.asarray(qt.liouvillian(int1*qt.sigmax() + int2*qt.sigmay() + int3*qt.sigmaz()))
+        
+        states.append(sp.linalg.expm(A) @ states[i])
+        states[i] = misc.unvec(states[i])
+        
+    states[-1] = misc.unvec(states[-1])
+    
+    return states
