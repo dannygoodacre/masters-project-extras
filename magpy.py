@@ -80,11 +80,19 @@ def liouvillian(H):
 
     return -1j * (np.kron(np.eye(n),H) - np.kron(H.T,np.eye(n)))
 
-def tensor(args):
-    return 0
+def kron(*args):
+    if len(args) == 1 and isinstance(args[0], (list, np.ndarray)):
+        args = args[0]
+    elif len(args) == 1 and isinstance(args[0], np.ndarray): # TODO: fix this
+        return args[0]
+        
+    out = args[0]
+    for arg in args[1:]:
+        out = np.kron(out, arg)
+    return out
 
-def timesteps(initial, final, h):
-    return np.linspace(initial, final, int(final / h) + 1)  
+def timesteps(start, stop, step, dtype=None):
+    return np.linspace(start, stop, int((stop - start) / step) + 1).astype(dtype)
 
 def Frobenius(a, b):
     """
@@ -159,7 +167,7 @@ def magnus2(H_coeffs, HJ, t0, tf):
 
     return 0.5j * qt.liouvillian(omega2)
 
-def lvn_solve(H_coeffs, rho0, tlist, HJ=qt.Qobj(0), two_terms=True):
+def lvn_solve(H_coeffs, rho0, tlist, HJ, two_terms=True):
     """Liouville-von Neumann evolution of density matrix for given Hamiltonian.
     
     For n particles, the Hamiltonian takes the form: 

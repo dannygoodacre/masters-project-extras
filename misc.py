@@ -8,7 +8,6 @@ def lanczos(A, b, m=None):
     n = A.shape[0]
     if m is None:
         m = n
-        
     V = np.zeros((n, m), dtype='complex')
     W = np.zeros((n, m), dtype='complex')
     alpha = np.zeros((m, 1), dtype='complex')
@@ -19,12 +18,12 @@ def lanczos(A, b, m=None):
     alpha[0] = np.vdot(W[:, 0], V[:, 0])
     W[:, 0] = W[:, 0] - alpha[0]*V[:, 0]
     
-    for j in range(2, m+1):
-        beta[j - 1] = np.linalg.norm(W[:, j - 2])
-        V[:, j - 1] = W[:, j - 1 - 1] / beta[j - 1]
-        W[:, j - 1] = A @ V[:, j - 1]
-        alpha[j - 1] = np.vdot(W[:, j - 1], V[:, j - 1])
-        W[:, j - 1] = W[:, j - 1] - alpha[j - 1]*V[:, j - 1] - beta[j - 1]*V[:, j - 2]
+    for j in range(1, m):
+        beta[j] = np.linalg.norm(W[:, j-1])
+        V[:, j] = W[:, j-1] / beta[j]
+        W[:, j] = A @ V[:, j]
+        alpha[j] = np.vdot(W[:, j], V[:, j])
+        W[:, j] = W[:, j] - alpha[j]*V[:, j] - beta[j]*V[:, j-1]
 
     return V, np.diagflat(alpha) + np.diagflat(beta[1:], 1) + np.diagflat(beta[1:], -1)
 
@@ -81,10 +80,6 @@ def expm_lvn(H, rho0, tlist, midpoint=False):
         A = np.asarray(qt.liouvillian(H(tlist[i] + midpoint*0.5*h)))
         states.append(sp.linalg.expm(h * A) @ states[i])
         states[i] = mp.unvec(states[i])
-        
-        if not (i % 1000):
-            print(i)
-        
     states[-1] = mp.unvec(states[-1])
     
     return states
