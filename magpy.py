@@ -6,7 +6,7 @@ import qutip as qt
 
 def vec(mat):
     """
-    Return a vector formed by stacking columns of matrix.
+    Stacks columns of matrix into vector using column-major (Fortran) ordering.
 
     Parameters
     ----------
@@ -16,27 +16,27 @@ def vec(mat):
     Returns
     -------
     ndarray
-        Vectorised form of matrix, using column-major (Fortran) ordering.
-
+        Vectorised matrix.
+        
     """
     return np.asarray(mat).flatten('F')
 
 def unvec(vec, c=None):
     """
-    Return unvectorised/re-matricised vector using column-major (Fortran) ordering.
+    Unvectorised vector using column-major (Fortran) ordering.
 
     Parameters
     ----------
     vec : ndarray
         Vector of elements.
     c : int, optional
-        Desired length of columns in matrix. Leave blank if a square matrix. The default is None.
+        Desired length of columns in matrix. Infers square matrix if so. The default is None.
 
     Returns
     -------
     ndarray
-        Matrix formed from vector.
-
+        Matrix.
+        
     """
     vec = np.array(vec)
 
@@ -62,7 +62,7 @@ def unvec(vec, c=None):
 
 def liouvillian(H):
     """
-    Liouvillian form of a given Hamiltonian.
+    Liouvillian of a given Hamiltonian.
 
     Parameters
     ----------
@@ -81,17 +81,60 @@ def liouvillian(H):
     return -1j * (np.kron(np.eye(n),H) - np.kron(H.T,np.eye(n)))
 
 def kron(*args):
-    if len(args) == 1 and isinstance(args[0], (list, np.ndarray)):
-        args = args[0]
-    elif len(args) == 1 and isinstance(args[0], np.ndarray): # TODO: fix this
-        return args[0]
+    """
+    Calculates the Kronecker product of input arguments.
+
+    Returns
+    -------
+    ndarray
+        Kronecker product of input arguments.
+
+    Raises
+    ------
+    TypeError
+        No input arguments.
         
-    out = args[0]
-    for arg in args[1:]:
-        out = np.kron(out, arg)
+    """
+    if not args:
+        raise TypeError("Requires at least one input argument")
+
+    if len(args) == 1 and isinstance(args[0], list):
+        mlist = args[0]
+    elif len(args) == 1 and isinstance(args[0], np.ndarray):
+        if len(args[0].shape) == 2: # single
+            return args[0]
+        else: # ndarray
+            mlist = args[0]
+    else:
+        mlist = args
+    
+    out = mlist[0]    
+    for m in mlist[1:]:
+        out = np.kron(out, m)
+        
     return out
 
 def timesteps(start, stop, step, dtype=None):
+    """
+    Numbers spaced by specified step over specified interval.
+
+    Parameters
+    ----------
+    start : array_like
+        Starting value of sequence.
+    stop : array_like
+        End value of sequence.
+    step : array_like
+        Amount by which to space points in sequence.
+    dtype : dtype, optional
+        The type of the output array. If dtype is not given, then the data type is inferred from arguments. The default is None.
+
+    Returns
+    -------
+    np.ndarray
+        Equally spaced numbers as specified.
+        
+    """
     return np.linspace(start, stop, int((stop - start) / step) + 1).astype(dtype)
 
 def Frobenius(a, b):
@@ -103,7 +146,7 @@ def Frobenius(a, b):
     a : ndarray
         Square array or list/array of square arrays.
     b : ndarray
-        Square numpy array.
+        Square array.
 
     Returns
     -------
@@ -168,7 +211,8 @@ def magnus2(H_coeffs, HJ, t0, tf):
     return 0.5j * qt.liouvillian(omega2)
 
 def lvn_solve(H_coeffs, rho0, tlist, HJ, two_terms=True):
-    """Liouville-von Neumann evolution of density matrix for given Hamiltonian.
+    """
+    Liouville-von Neumann evolution of density matrix for given Hamiltonian.
     
     For n particles, the Hamiltonian takes the form: 
     sum_{k=1}^{n} Id otimes  ... otimes (f_k(t)*sigmax + g_k(t)*sigmay + omega_k*sigmaz) otimes  ... otimes Id,
@@ -195,6 +239,7 @@ def lvn_solve(H_coeffs, rho0, tlist, HJ, two_terms=True):
     -------
     numpy.ndarray
         list / array of density matrices calculated at times in tlist.
+        
     """
     states = [vec(rho0)]
     if type(H_coeffs[0]) != type([]): # one particle

@@ -45,7 +45,7 @@ plt.plot(steps, vals)
 steps = mp.timesteps(1, 40, 1, dtype=int)
 errors = []
 for k in steps:
-    errors.append(np.linalg.norm(misc.krylov_expm(t * A, b, k) - ref))
+    errors.append(np.linalg.norm(misc.krylov_expm(t * A, b, k) - ref, 2))
     
 plt.plot(steps, errors)
 plt.ylim(10**(-10), 10)
@@ -54,4 +54,5 @@ plt.yscale('log')
 plt.ylabel('Error')
 plt.xlabel('Iterations')
 plt.legend(['Bound','Error'])
-plt.savefig("test.pdf", format="pdf")
+plt.show()
+# plt.savefig("test.pdf", format="pdf")
