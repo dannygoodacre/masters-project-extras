@@ -1,12 +1,13 @@
 import numpy as np
-import scipy as sp
-import qutip as qt
+import scipy.integrate
 
-# TODO: Remove QuTiP dependency
+sigmax = np.array([[0, 1], [1, 0]])
+sigmay = np.array([[0, -1j], [1j, 0]])
+sigmaz = np.array([[1, 0], [0, -1]])
 
 def vec(mat):
     """
-    Stacks columns of matrix into vector using column-major (Fortran) ordering.
+    Return vectorised form of input using column-major (Fortran) ordering.
 
     Parameters
     ----------
@@ -16,14 +17,15 @@ def vec(mat):
     Returns
     -------
     ndarray
-        Vectorised matrix.
+        Vector.
         
     """
+    
     return np.asarray(mat).flatten('F')
 
 def unvec(vec, c=None):
     """
-    Unvectorised vector using column-major (Fortran) ordering.
+    Return unvectorised vector using column-major (Fortran) ordering.
 
     Parameters
     ----------
@@ -38,6 +40,7 @@ def unvec(vec, c=None):
         Matrix.
         
     """
+   
     vec = np.array(vec)
 
     if (len(vec) % 2 != 0): # odd number of elements
@@ -62,7 +65,7 @@ def unvec(vec, c=None):
 
 def liouvillian(H):
     """
-    Liouvillian of a given Hamiltonian.
+    Return Liouvillian of a Hamiltonian.
 
     Parameters
     ----------
@@ -75,14 +78,41 @@ def liouvillian(H):
         Square matrix with dimension n^2.
 
     """
-    H = np.asarray(H)
+    
     n = H.shape[0]
-
+    
     return -1j * (np.kron(np.eye(n),H) - np.kron(H.T,np.eye(n)))
 
+def commutator(A, B, kind="normal"):
+    """
+    Return commutator of kind of A and B.
+
+    Parameters
+    ----------
+    A : ndarray
+        Square array.
+    B : ndarray
+        Square array.   
+    kind : str, optional
+        kind of commutator (normal, anti), The default is "normal".
+
+    Returns
+    -------
+    ndarray
+        Commutator of A and B.
+        
+    """
+
+    if kind == "normal":
+        return A@B - B@A
+    elif kind == "anti":
+        return A@B + B@A
+    else:
+        raise TypeError("Unknown commutator kind " + str(kind))
+    
 def kron(*args):
     """
-    Calculates the Kronecker product of input arguments.
+    Return Kronecker product of input arguments.
 
     Returns
     -------
@@ -95,10 +125,11 @@ def kron(*args):
         No input arguments.
         
     """
+    
     if not args:
         raise TypeError("Requires at least one input argument")
 
-    if len(args) == 1 and isinstance(args[0], list):
+    if len(args) == 1 and isinstance(args[0], list): # input of the form [a,b,...]
         mlist = args[0]
     elif len(args) == 1 and isinstance(args[0], np.ndarray):
         if len(args[0].shape) == 2: # single
@@ -114,9 +145,9 @@ def kron(*args):
         
     return out
 
-def timesteps(start, stop, step, dtype=None):
+def linspace(start, stop, step, dtype=None):
     """
-    Numbers spaced by specified step over specified interval.
+    Return numbers spaced by specified step over specified interval.
 
     Parameters
     ----------
@@ -135,11 +166,12 @@ def timesteps(start, stop, step, dtype=None):
         Equally spaced numbers as specified.
         
     """
+    
     return np.linspace(start, stop, int((stop - start) / step) + 1).astype(dtype)
 
 def Frobenius(a, b):
     """
-    Frobenius/trace inner product of a and b. Applied element-wise if a is not single.
+    Return Frobenius/trace inner product of a and b. Applied element-wise if a is not single.
 
     Parameters
     ----------
@@ -153,7 +185,16 @@ def Frobenius(a, b):
     ndarray or scalar
         The value(s) of the trace of a times b.
 
+    Examples
+    --------
+    >>> mp.Frobenius(np.eye(2), np.ones((2,2)))
+    (2+0j)
+    >>> a = [np.eye(2), np.ones((2,2))]
+    >>> mp.Frobenius(a, np.ones((2,2)))
+    array([2.+0.j, 4.+0.j])
+    
     """
+    
     a = np.asarray(a, dtype=object)
     b = np.asarray(b, dtype=complex)
 
@@ -161,38 +202,37 @@ def Frobenius(a, b):
         t = []
         for x in a:
             t.append(np.trace(x.conj().T @ b))
-
         return np.asarray(t)
-    except: # a is individual
+    except: # a is individual    
         return np.trace(a.conj().T @ b)
 
-def magnus1(H_coeffs, HJ, t0, tf):
+def _magnus_first_term(H_coeffs, HJ, t0, tf):
     omega1 = (tf - t0) * HJ
     for j in range(len(H_coeffs)):
-        Ijx = [qt.identity(2) for i in H_coeffs]
-        Ijy = [qt.identity(2) for i in H_coeffs]
-        Ijz = [qt.identity(2) for i in H_coeffs]
-        Ijx[j] = qt.sigmax()
-        Ijy[j] = qt.sigmay()
-        Ijz[j] = qt.sigmaz()
+        Ijx = [np.eye(2) for _ in H_coeffs]
+        Ijy = [np.eye(2) for _ in H_coeffs]
+        Ijz = [np.eye(2) for _ in H_coeffs]
+        Ijx[j] = sigmax
+        Ijy[j] = sigmay
+        Ijz[j] = sigmaz
         
-        omega1 = omega1 + sp.integrate.quad(H_coeffs[j][0], t0, tf)[0]*qt.tensor(Ijx) + sp.integrate.quad(H_coeffs[j][1], t0, tf)[0]*qt.tensor(Ijy) + H_coeffs[j][2]*(tf - t0)*qt.tensor(Ijz)
+        omega1 = omega1 + scipy.integrate.quad(H_coeffs[j][0], t0, tf)[0]*kron(Ijx) + scipy.integrate.quad(H_coeffs[j][1], t0, tf)[0]*kron(Ijy) + H_coeffs[j][2]*(tf - t0)*kron(Ijz)
     
-    return qt.liouvillian(omega1)
+    return liouvillian(omega1)
 
-def magnus2(H_coeffs, HJ, t0, tf):
+def _magnus_second_term(H_coeffs, HJ, t0, tf):
     omega2 = 0
     for j in range(len(H_coeffs)):
-        Ijx = [qt.identity(2) for i in H_coeffs]
-        Ijy = [qt.identity(2) for i in H_coeffs]
-        Ijz = [qt.identity(2) for i in H_coeffs]
-        Ijx[j] = qt.sigmax()
-        Ijy[j] = qt.sigmay()
-        Ijz[j] = qt.sigmaz()
+        Ijx = [np.eye(2) for _ in H_coeffs]
+        Ijy = [np.eye(2) for _ in H_coeffs]
+        Ijz = [np.eye(2) for _ in H_coeffs]
+        Ijx[j] = sigmax
+        Ijy[j] = sigmay
+        Ijz[j] = sigmaz
         
-        c1 = 2j*H_coeffs[j][2]*qt.tensor(Ijx) + qt.commutator(qt.tensor(Ijy), HJ)
-        c2 = 2j*H_coeffs[j][2]*qt.tensor(Ijy) + qt.commutator(HJ, qt.tensor(Ijx))
-        c3 = 2j * qt.tensor(Ijz)
+        c1 = 2j*H_coeffs[j][2]*kron(Ijx) + commutator(kron(Ijy), HJ)
+        c2 = 2j*H_coeffs[j][2]*kron(Ijy) + commutator(HJ, kron(Ijx))
+        c3 = 2j * kron(Ijz)
         
         f = H_coeffs[j][0]
         g = H_coeffs[j][1]
@@ -202,23 +242,23 @@ def magnus2(H_coeffs, HJ, t0, tf):
         def q2(y, x): return f(y) - f(x)
         def q3(y, x): return f(y)*g(x) - g(y)*f(x)
         
-        int1 = sp.integrate.dblquad(q1, t0, tf, t0, x)[0]
-        int2 = sp.integrate.dblquad(q2, t0, tf, t0, x)[0]
-        int3 = sp.integrate.dblquad(q3, t0, tf, t0, x)[0]
+        int1 = scipy.integrate.dblquad(q1, t0, tf, t0, x)[0]
+        int2 = scipy.integrate.dblquad(q2, t0, tf, t0, x)[0]
+        int3 = scipy.integrate.dblquad(q3, t0, tf, t0, x)[0]
         
         omega2 = omega2 + int1*c1 - int2*c2 + int3*c3
 
-    return 0.5j * qt.liouvillian(omega2)
+    return 0.5j * liouvillian(omega2)
 
-def lvn_solve(H_coeffs, rho0, tlist, HJ, two_terms=True):
+def lvn_solve(H_coeffs, rho0, tlist, HJ=None, two_terms=True):
     """
     Liouville-von Neumann evolution of density matrix for given Hamiltonian.
     
     For n particles, the Hamiltonian takes the form: 
     sum_{k=1}^{n} Id otimes  ... otimes (f_k(t)*sigmax + g_k(t)*sigmay + omega_k*sigmaz) otimes  ... otimes Id,
-    where k denotes position in the kronecker product.
+    where k denotes position in the kronecker product (otimes).
     
-    For one particle the Hamiltonian takes the form f(t)*sigmax + g(t)*sigmay + omega*sigmaz
+    For one particle the Hamiltonian takes the form f(t)*sigmax + g(t)*sigmay + omega*sigmaz.
         
     H_coeffs then takes the form [[f1, g1, omega1], [f2, g2, omega2], ...], or [f, g, omega] for a single particle.
     f and g must be functions and the omegas are scalar constants.
@@ -226,28 +266,56 @@ def lvn_solve(H_coeffs, rho0, tlist, HJ, two_terms=True):
     Parameters
     ----------
     H_coeffs : list / array
-        list of coefficients that form Hamiltonian.
-    rho0 : qutip.Qobj
+        Coefficients that form Hamiltonian.
+    rho0 : ndarray
         Initial density matrix.
     tlist : list / array
         Times at which to calculate density matrices.
-    HJ : qutip.Qobj, optional
+    HJ : ndarray, optional
         Interacting part of Hamiltonian, by default None.
-    two_terms : bool, optional
-        Whether or not to use two terms of Magnus expansion.
+    second_term : bool, optional
+        Whether or not to use second term of Magnus expansion in calculation, by default True.
+        
     Returns
     -------
     numpy.ndarray
-        list / array of density matrices calculated at times in tlist.
+        Density matrices calculated across tlist.
+        
+    Examples
+    --------
+    One particle :
+    
+        >>> def f(t): return t
+        >>> def g(t): return t - t**2
+        >>> omega = 2           
+        >>> H_coeffs = [f, g, omega]
+        
+    Two particles:
+    
+        >>> def f1(t): return t
+        >>> def g1(t): return t**2
+        >>> omega1 = 2
+        >>> def f2(t): return 4*t
+        >>> def g2(t): return np.sqrt(t)
+        >>> omega2 = -1
+        >>> H_coeffs = [[f1, g1, omega1], [f2, g2, omega2]]
         
     """
-    states = [vec(rho0)]
-    if type(H_coeffs[0]) != type([]): # one particle
-        H_coeffs = [H_coeffs]
     
+    # check whether H_coeffs is a single particle
+    # if so convert to list containing only that particle's data
+    if not isinstance(H_coeffs[0], (list, np.ndarray)):
+        H_coeffs = [H_coeffs]
+        
+    # check whether HJ is empty and if it is needed to be compatible with dimension of Hamiltonian
+    if HJ is None:
+        n = len(H_coeffs)
+        HJ = np.zeros((2**n, 2**n))
+    
+    states = [vec(rho0)]
     for i in range(len(tlist) - 1):
-        omega = magnus1(H_coeffs, HJ, tlist[i], tlist[i+1]) + two_terms*magnus2(H_coeffs, HJ, tlist[i], tlist[i+1])
-        states.append(sp.linalg.expm(np.asarray(omega)) @ states[i])
+        omega = _magnus_first_term(H_coeffs, HJ, tlist[i], tlist[i+1]) + two_terms*_magnus_second_term(H_coeffs, HJ, tlist[i], tlist[i+1])
+        states.append(scipy.linalg.expm(omega) @ states[i])
         states[i] = unvec(states[i])
         
     states[-1] = unvec(states[-1])
