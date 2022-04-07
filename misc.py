@@ -65,7 +65,7 @@ def krylov_lvn(H, rho0, tlist, m, midpoint=False):
     states = [mp.vec(rho0)]
     
     for i in range(len(tlist) - 1):
-        A = np.asarray(qt.liouvillian(H(tlist[i] + midpoint*0.5*h)))
+        A = np.asarray(mp.liouvillian(H(tlist[i] + midpoint*0.5*h)))
         states.append(krylov_expm(h * A, states[i], m))
         states[i] = mp.unvec(states[i])
     states[-1] = mp.unvec(states[-1])
@@ -77,7 +77,7 @@ def expm_lvn(H, rho0, tlist, midpoint=False):
     states = [mp.vec(rho0)]
     
     for i in range(len(tlist) - 1):
-        A = np.asarray(qt.liouvillian(H(tlist[i] + midpoint*0.5*h)))
+        A = np.asarray(mp.liouvillian(H(tlist[i] + midpoint*0.5*h)))
         states.append(sp.linalg.expm(h * A) @ states[i])
         states[i] = mp.unvec(states[i])
     states[-1] = mp.unvec(states[-1])
@@ -89,7 +89,7 @@ def expm_one_spin(data, rho0, tlist):
     states = [mp.vec(rho0)]
     
     for i in range(len(tlist) - 1):
-        A = np.asarray(qt.liouvillian(data[i][0]*qt.sigmax() + data[i][1]*qt.sigmay() + data[i][2]*qt.sigmaz()))
+        A = np.asarray(mp.liouvillian(data[i][0]*mp.sigmax + data[i][1]*mp.sigmay + data[i][2]*mp.sigmaz))
         states.append(sp.linalg.expm(A) @ states[i])
         states[i] = mp.unvec(states[i])
         if not (i % 10000): 
@@ -103,7 +103,7 @@ def forward_euler_lvn(H, rho0, tlist, midpoint=False):
     h = tlist[1] - tlist[0]
 
     for i in range(len(tlist) - 1):
-        A = np.asarray(qt.liouvillian(H(tlist[i] + 0.5*midpoint*h)))
+        A = np.asarray(mp.liouvillian(H(tlist[i] + 0.5*midpoint*h)))
         fe = np.eye(A.shape[0]) + h*A
         
         states.append(fe @ states[i])
@@ -118,7 +118,7 @@ def backward_euler_lvn(H, rho0, tlist, midpoint=False):
     h = tlist[1] - tlist[0]
 
     for i in range(len(tlist) - 1):
-        A = np.asarray(qt.liouvillian(H(tlist[i] + 0.5*midpoint*h))) # Check if backward or forward is better
+        A = np.asarray(mp.liouvillian(H(tlist[i] + 0.5*midpoint*h)))
         be = sp.linalg.inv(np.eye(A.shape[0]) - h*A)
         
         states.append(be @ states[i])
@@ -134,7 +134,7 @@ def trapezoidal_rule_lvn(H, rho0, tlist, midpoint=False):
     I = np.eye(rho0.full().size)
 
     for i in range(len(tlist) - 1):
-        A = np.asarray(qt.liouvillian(H(tlist[i] + midpoint*0.5*h)))
+        A = np.asarray(mp.liouvillian(H(tlist[i] + midpoint*0.5*h)))
         tr = sp.linalg.inv(I - (h/2)*A) @ (I + (h/2)*A)
         
         states.append(tr @ states[i])
@@ -148,7 +148,7 @@ def rk4_lvn(H, rho0, tlist, midpoint=False):
     states = [mp.vec(rho0)]
     
     for i in range(len(tlist) - 1):
-        A = np.asarray(qt.liouvillian(H(tlist[i] + midpoint*0.5*h)))
+        A = np.asarray(mp.liouvillian(H(tlist[i] + midpoint*0.5*h)))
         k1 = A @ states[i]
         k2 = A @ (states[i] + 0.5*h*k1)
         k3 = A @ (states[i] + 0.5*h*k2)
@@ -308,7 +308,7 @@ def pre_integrate(H_coeff, tlist, method):
     return data
 
 def one_spin(H_coeff):
-    def H(t, args=None): return H_coeff[0](t)*qt.sigmax() + H_coeff[1](t)*qt.sigmay() + H_coeff[2]*qt.sigmaz()
+    def H(t, args=None): return H_coeff[0](t)*mp.sigmax + H_coeff[1](t)*mp.sigmay + H_coeff[2]*mp.sigmaz
     return H
 
 def two_spins(H1_coeff, H2_coeff, HJ=0):
@@ -320,8 +320,8 @@ def two_spins(H1_coeff, H2_coeff, HJ=0):
     g2 = H2_coeff[1]
     o2 = H2_coeff[2]
     
-    def H1(t): return f1(t)*qt.tensor(qt.sigmax(), qt.identity(2)) + g1(t)*qt.tensor(qt.sigmay(), qt.identity(2)) + o1*qt.tensor(qt.sigmaz(), qt.identity(2))
-    def H2(t): return f2(t)*qt.tensor(qt.identity(2), qt.sigmax()) + g2(t)*qt.tensor(qt.identity(2), qt.sigmay()) + o2*qt.tensor(qt.identity(2), qt.sigmaz())
+    def H1(t): return f1(t)*mp.kron(mp.sigmax, np.eye(2)) + g1(t)*mp.kron(mp.sigmay, np.eye(2)) + o1*mp.kron(mp.sigmaz, np.eye(2))
+    def H2(t): return f2(t)*mp.kron(mp.eye(2), mp.sigmax) + g2(t)*mp.kron(np.eye(2), mp.sigmay) + o2*mp.kron(np.eye(2), mp.sigmaz)
     def H(t, args=None): return H1(t) + H2(t) + HJ
     return H
 
@@ -332,13 +332,13 @@ def n_spins(H_coeffs, HJ=0):
     def H_total(t, args=None):
         total = HJ
         for i in range(len(H_coeffs)):
-            sx = [qt.identity(2) for i in H_coeffs]
-            sy = [qt.identity(2) for i in H_coeffs]
-            sz = [qt.identity(2) for i in H_coeffs]
-            sx[i] = qt.sigmax()
-            sy[i] = qt.sigmay()
-            sz[i] = qt.sigmaz()
-            total = total + H_coeffs[i][0](t)*qt.tensor(sx) + H_coeffs[i][1](t)*qt.tensor(sy) + H_coeffs[i][2]*qt.tensor(sz)
+            sx = [np.eye(2) for _ in H_coeffs]
+            sy = [np.eye(2) for _ in H_coeffs]
+            sz = [np.eye(2) for _ in H_coeffs]
+            sx[i] = mp.sigmax
+            sy[i] = mp.sigmay
+            sz[i] = mp.sigmaz
+            total = total + H_coeffs[i][0](t)*mp.kron(sx) + H_coeffs[i][1](t)*mp.kron(sy) + H_coeffs[i][2]*mp.kron(sz)
         
         return total
     

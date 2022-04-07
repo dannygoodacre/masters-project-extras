@@ -117,7 +117,7 @@ def kron(*args):
     Returns
     -------
     ndarray
-        Kronecker product of input arguments.
+        Kronecker product.
 
     Raises
     ------
@@ -250,7 +250,7 @@ def _magnus_second_term(H_coeffs, HJ, t0, tf):
 
     return 0.5j * liouvillian(omega2)
 
-def lvn_solve(H_coeffs, rho0, tlist, HJ=None, two_terms=True):
+def lvnsolve(H_coeffs, rho0, tlist, HJ=None, two_terms=True):
     """
     Liouville-von Neumann evolution of density matrix for given Hamiltonian.
     
