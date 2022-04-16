@@ -1,9 +1,18 @@
 import numpy as np
 import scipy.integrate
 
-sigmax = np.array([[0, 1], [1, 0]])
-sigmay = np.array([[0, -1j], [1j, 0]])
-sigmaz = np.array([[1, 0], [0, -1]])
+
+def sigmax():
+    return np.array([[0, 1], [1, 0]])
+
+
+def sigmay():
+    return np.array([[0, -1j], [1j, 0]])
+
+
+def sigmaz():
+    return np.array([[1, 0], [0, -1]])
+
 
 def vec(mat):
     """
@@ -18,10 +27,11 @@ def vec(mat):
     -------
     ndarray
         Vector.
-        
+
     """
-    
+
     return np.asarray(mat).flatten('F')
+
 
 def unvec(vec, c=None):
     """
@@ -32,36 +42,45 @@ def unvec(vec, c=None):
     vec : ndarray
         Vector of elements.
     c : int, optional
-        Desired length of columns in matrix. Infers square matrix if so. The default is None.
+        Desired length of columns in matrix. Infers square matrix if so.
+        The default is None.
 
     Returns
     -------
     ndarray
         Matrix.
-        
+
     """
-   
+
     vec = np.array(vec)
 
-    if (len(vec) % 2 != 0): # odd number of elements
+    # odd number of elements
+    if (len(vec) % 2 != 0):
         if (len(vec) == 1):
             return vec
         else:
-            print("Error: odd number of elements in vector. Cannot form matrix.")
+            print("Error: odd number of elements in vector. \
+                  Cannot form matrix.")
             return None
-    elif (c == None):
-        if (np.sqrt(len(vec)).is_integer()): # matrix is square
+    elif c is None:
+        # matrix is square
+        if (np.sqrt(len(vec)).is_integer()):
             c = int(np.sqrt(len(vec)))
-        else: # matrix is not square
-            print("Error: vector cannot form a square matrix. Please provide a column length, c.")
+        else:
+            print("Error: vector cannot form a square matrix. \
+                  Please provide a column length, c.")
             return None
-    elif (not (len(vec) / c).is_integer()): # c does not divide length of vec
-        print("Error: value of c is invalid. Cannot split vector evenly into columns of length c")
+    # c does not divide length of vec
+    elif (not (len(vec) / c).is_integer()):
+        print("Error: value of c is invalid. \
+              Cannot split vector evenly into columns of length c")
         return None
 
-    n = int(len(vec) / c) # number of rows
+    # number of rows
+    n = int(len(vec) / c)
 
-    return vec.reshape((c, n), order = 'F')
+    return vec.reshape((c, n), order='F')
+
 
 def liouvillian(H):
     """
@@ -78,10 +97,11 @@ def liouvillian(H):
         Square matrix with dimension n^2.
 
     """
-    
+
     n = H.shape[0]
-    
-    return -1j * (np.kron(np.eye(n),H) - np.kron(H.T,np.eye(n)))
+
+    return -1j * (np.kron(np.eye(n), H) - np.kron(H.T, np.eye(n)))
+
 
 def commutator(A, B, kind="normal"):
     """
@@ -92,7 +112,7 @@ def commutator(A, B, kind="normal"):
     A : ndarray
         Square array.
     B : ndarray
-        Square array.   
+        Square array.
     kind : str, optional
         kind of commutator (normal, anti), The default is "normal".
 
@@ -100,7 +120,7 @@ def commutator(A, B, kind="normal"):
     -------
     ndarray
         Commutator of A and B.
-        
+
     """
 
     if kind == "normal":
@@ -109,7 +129,8 @@ def commutator(A, B, kind="normal"):
         return A@B + B@A
     else:
         raise TypeError("Unknown commutator kind " + str(kind))
-    
+
+
 def kron(*args):
     """
     Return Kronecker product of input arguments.
@@ -123,27 +144,31 @@ def kron(*args):
     ------
     TypeError
         No input arguments.
-        
+
     """
-    
+
     if not args:
         raise TypeError("Requires at least one input argument")
 
-    if len(args) == 1 and isinstance(args[0], list): # input of the form [a,b,...]
+    # input of the form [a,b,...]
+    if len(args) == 1 and isinstance(args[0], list):
         mlist = args[0]
     elif len(args) == 1 and isinstance(args[0], np.ndarray):
-        if len(args[0].shape) == 2: # single
+        # single
+        if len(args[0].shape) == 2:
             return args[0]
-        else: # ndarray
+        # ndarray
+        else:
             mlist = args[0]
     else:
         mlist = args
-    
-    out = mlist[0]    
+
+    out = mlist[0]
     for m in mlist[1:]:
         out = np.kron(out, m)
-        
+
     return out
+
 
 def linspace(start, stop, step, dtype=None):
     """
@@ -158,20 +183,24 @@ def linspace(start, stop, step, dtype=None):
     step : array_like
         Amount by which to space points in sequence.
     dtype : dtype, optional
-        The type of the output array. If dtype is not given, then the data type is inferred from arguments. The default is None.
+        The type of the output array. If dtype is not given,
+        then the data type is inferred from arguments. The default is None.
 
     Returns
     -------
     np.ndarray
         Equally spaced numbers as specified.
-        
-    """
-    
-    return np.linspace(start, stop, int((stop - start) / step) + 1).astype(dtype)
 
-def Frobenius(a, b):
     """
-    Return Frobenius/trace inner product of a and b. Applied element-wise if a is not single.
+
+    return (np.linspace(start, stop, int((stop - start) / step) + 1)
+            .astype(dtype))
+
+
+def frobenius(a, b):
+    """
+    Return Frobenius/trace inner product of a and b.
+    Applied element-wise if a is not single.
 
     Parameters
     ----------
@@ -192,19 +221,23 @@ def Frobenius(a, b):
     >>> a = [np.eye(2), np.ones((2,2))]
     >>> mp.Frobenius(a, np.ones((2,2)))
     array([2.+0.j, 4.+0.j])
-    
+
     """
-    
+
     a = np.asarray(a, dtype=object)
     b = np.asarray(b, dtype=complex)
 
-    try: # a is an array
+    # a is an array
+    try:
         t = []
         for x in a:
             t.append(np.trace(x.conj().T @ b))
         return np.asarray(t)
-    except: # a is individual    
+
+    # a is single
+    except:
         return np.trace(a.conj().T @ b)
+
 
 def _magnus_first_term(H_coeffs, HJ, t0, tf):
     omega1 = (tf - t0) * HJ
@@ -212,13 +245,17 @@ def _magnus_first_term(H_coeffs, HJ, t0, tf):
         Ijx = [np.eye(2) for _ in H_coeffs]
         Ijy = [np.eye(2) for _ in H_coeffs]
         Ijz = [np.eye(2) for _ in H_coeffs]
-        Ijx[j] = sigmax
-        Ijy[j] = sigmay
-        Ijz[j] = sigmaz
-        
-        omega1 = omega1 + scipy.integrate.quad(H_coeffs[j][0], t0, tf)[0]*kron(Ijx) + scipy.integrate.quad(H_coeffs[j][1], t0, tf)[0]*kron(Ijy) + H_coeffs[j][2]*(tf - t0)*kron(Ijz)
-    
+        Ijx[j] = sigmax()
+        Ijy[j] = sigmay()
+        Ijz[j] = sigmaz()
+
+        omega1 = (omega1
+                  + scipy.integrate.quad(H_coeffs[j][0], t0, tf)[0]*kron(Ijx)
+                  + scipy.integrate.quad(H_coeffs[j][1], t0, tf)[0]*kron(Ijy)
+                  + H_coeffs[j][2]*(tf - t0)*kron(Ijz))
+
     return liouvillian(omega1)
+
 
 def _magnus_second_term(H_coeffs, HJ, t0, tf):
     omega2 = 0
@@ -226,43 +263,51 @@ def _magnus_second_term(H_coeffs, HJ, t0, tf):
         Ijx = [np.eye(2) for _ in H_coeffs]
         Ijy = [np.eye(2) for _ in H_coeffs]
         Ijz = [np.eye(2) for _ in H_coeffs]
-        Ijx[j] = sigmax
-        Ijy[j] = sigmay
-        Ijz[j] = sigmaz
-        
+        Ijx[j] = sigmax()
+        Ijy[j] = sigmay()
+        Ijz[j] = sigmaz()
+
         c1 = 2j*H_coeffs[j][2]*kron(Ijx) + commutator(kron(Ijy), HJ)
         c2 = 2j*H_coeffs[j][2]*kron(Ijy) + commutator(HJ, kron(Ijx))
         c3 = 2j * kron(Ijz)
-        
+
         f = H_coeffs[j][0]
         g = H_coeffs[j][1]
-        
+
         def x(x): return x
         def q1(y, x): return g(y) - g(x)
         def q2(y, x): return f(y) - f(x)
         def q3(y, x): return f(y)*g(x) - g(y)*f(x)
-        
+
         int1 = scipy.integrate.dblquad(q1, t0, tf, t0, x)[0]
         int2 = scipy.integrate.dblquad(q2, t0, tf, t0, x)[0]
         int3 = scipy.integrate.dblquad(q3, t0, tf, t0, x)[0]
-        
+
         omega2 = omega2 + int1*c1 - int2*c2 + int3*c3
 
     return 0.5j * liouvillian(omega2)
 
-def lvnsolve(H_coeffs, rho0, tlist, HJ=None, two_terms=True):
+
+def lvnsolve(H_coeffs, rho0, tlist, HJ=None):
     """
     Liouville-von Neumann evolution of density matrix for given Hamiltonian.
-    
-    For n particles, the Hamiltonian takes the form: 
-    sum_{k=1}^{n} Id otimes  ... otimes (f_k(t)*sigmax + g_k(t)*sigmay + omega_k*sigmaz) otimes  ... otimes Id,
+
+    For n particles, the Hamiltonian takes the form:
+
+    sum_{k=1}^{n} Id otimes  ... otimes (f_k(t)*sigmax + g_k(t)*sigmay
+    + omega_k*sigmaz) otimes  ... otimes Id,
+
     where k denotes position in the kronecker product (otimes).
-    
-    For one particle the Hamiltonian takes the form f(t)*sigmax + g(t)*sigmay + omega*sigmaz.
-        
-    H_coeffs then takes the form [[f1, g1, omega1], [f2, g2, omega2], ...], or [f, g, omega] for a single particle.
+
+    For one particle the Hamiltonian takes the form:
+
+    f(t)*sigmax + g(t)*sigmay + omega*sigmaz.
+
+    H_coeffs then takes the form [[f1, g1, omega1], [f2, g2, omega2], ...],
+    or [f, g, omega] for a single particle.
+
     f and g must be functions and the omegas are scalar constants.
-    
+
     Parameters
     ----------
     H_coeffs : list / array
@@ -273,25 +318,23 @@ def lvnsolve(H_coeffs, rho0, tlist, HJ=None, two_terms=True):
         Times at which to calculate density matrices.
     HJ : ndarray, optional
         Interacting part of Hamiltonian, by default None.
-    second_term : bool, optional
-        Whether or not to use second term of Magnus expansion in calculation, by default True.
-        
+
     Returns
     -------
     numpy.ndarray
         Density matrices calculated across tlist.
-        
+
     Examples
     --------
     One particle :
-    
+
         >>> def f(t): return t
         >>> def g(t): return t - t**2
-        >>> omega = 2           
+        >>> omega = 2
         >>> H_coeffs = [f, g, omega]
-        
+
     Two particles:
-    
+
         >>> def f1(t): return t
         >>> def g1(t): return t**2
         >>> omega1 = 2
@@ -299,25 +342,27 @@ def lvnsolve(H_coeffs, rho0, tlist, HJ=None, two_terms=True):
         >>> def g2(t): return np.sqrt(t)
         >>> omega2 = -1
         >>> H_coeffs = [[f1, g1, omega1], [f2, g2, omega2]]
-        
+
     """
-    
+
     # check whether H_coeffs is a single particle
     # if so convert to list containing only that particle's data
     if not isinstance(H_coeffs[0], (list, np.ndarray)):
         H_coeffs = [H_coeffs]
-        
-    # check whether HJ is empty and if it is needed to be compatible with dimension of Hamiltonian
+
+    # check whether HJ is empty and if it is needed to be
+    # compatible with dimension of Hamiltonian
     if HJ is None:
         n = len(H_coeffs)
         HJ = np.zeros((2**n, 2**n))
-    
+
     states = [vec(rho0)]
     for i in range(len(tlist) - 1):
-        omega = _magnus_first_term(H_coeffs, HJ, tlist[i], tlist[i+1]) + two_terms*_magnus_second_term(H_coeffs, HJ, tlist[i], tlist[i+1])
+        omega = (_magnus_first_term(H_coeffs, HJ, tlist[i], tlist[i+1])
+                 + _magnus_second_term(H_coeffs, HJ, tlist[i], tlist[i+1]))
         states.append(scipy.linalg.expm(omega) @ states[i])
         states[i] = unvec(states[i])
-        
+
     states[-1] = unvec(states[-1])
-    
+
     return states

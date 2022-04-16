@@ -92,8 +92,6 @@ def expm_one_spin(data, rho0, tlist):
         A = np.asarray(mp.liouvillian(data[i][0]*mp.sigmax + data[i][1]*mp.sigmay + data[i][2]*mp.sigmaz))
         states.append(sp.linalg.expm(A) @ states[i])
         states[i] = mp.unvec(states[i])
-        if not (i % 10000): 
-                print(i)
     states[-1] = mp.unvec(states[-1])
     
     return states
@@ -299,8 +297,6 @@ def pre_integrate(H_coeff, tlist, method):
             val[1] = h * H_coeff[1](tlist[i] + h/2)
             val[2] = h * H_coeff[2]
             data.append(val)
-            if not (i % 10000): 
-                print(i)
     else:
         print("Error: invalid method.")
         return 0
